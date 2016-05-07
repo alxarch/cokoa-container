@@ -1,0 +1,19 @@
+{
+  "name": "cokoa-container",
+  "version": "0.1.0",
+  "description": "Service container based on Map()",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test"
+  },
+  "author": "Sigalas Alexandros <alxarch@gmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "path-to-regexp": "^1.2.1"
+  },
+  "devDependencies": {},
+  "keywords": [
+    "container",
+    "cokoa"
+  ]
+}
