@@ -10,7 +10,7 @@ describe('Lazybox', () => {
 	describe('Lazybox.parseService()', () => {
 		it ('Should parse single function', () => {
 			let fn = function () {};
-			assert.deepEqual(Lazybox.parseService(fn), [fn, []]);
+			assert.deepEqual(Lazybox.parseService(fn), [fn, null]);
 		});
 		it ('Should parse an array function definition without deps', () => {
 			let fn = function () {};
@@ -47,7 +47,7 @@ describe('Lazybox', () => {
 			c.define('answer', getAnswer);
 			// Sets an uninitialized service for the key
 			assert.strictEqual(c.raw('answer'), undefined);
-			assert.deepEqual(getDependencies(c, 'answer'), []);
+			assert.deepEqual(getDependencies(c, 'answer'), [c]);
 			assert.strictEqual(c.services.get('answer'), getAnswer);
 		});
 		it('Should define a service with dependencies', () => {
@@ -134,7 +134,8 @@ describe('Lazybox', () => {
 				return value;
 			}
 			c.define('answer', ['answer.value', getAnswer]);
-			c.extend('answer', function (value) {
+			c.extend('answer', function (value, cc) {
+				assert.strictEqual(cc, c);
 				assert.strictEqual(value, Symbol.for('42'), 'Passes last service result as last dep');
 				return Symbol.for('44');
 			});

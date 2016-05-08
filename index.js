@@ -20,7 +20,7 @@ function isPlainFunction (fn) {
 	return 'function' === typeof fn && fn.constructor.name == 'Function';
 }
 function parseService (service) {
-	return Array.isArray(service) ? [service.pop(), service] : [service, []];
+	return Array.isArray(service) ? [service.pop(), service] : [service, null];
 }
 
 class Lazybox extends Map {
@@ -29,6 +29,7 @@ class Lazybox extends Map {
 		this.services = new Map();
 		this.dependencies = new Map();
 		this.factories = new Set();
+		this.set(this, this);
 	}
 	factory (fn) {
 		return function *() {
@@ -49,7 +50,7 @@ class Lazybox extends Map {
 		value = parseService(value);
 		assert(isFunction(value[0]), 'Invalid service definition');
 		this.services.set(key, value[0]);
-		this.dependencies.set(key, value[1]);
+		this.dependencies.set(key, value[1] || [this]);
 		return this;
 	}
 	// Resolve dependencies
@@ -107,7 +108,8 @@ class Lazybox extends Map {
 		const old_key = Symbol();
 		const old_deps = this.dependencies.get(key);
 		// add previous service as last dependency
-		this.define(key, [].concat(service[1], old_key, service[0]));
+		service = [old_key].concat(service[1] || [this], service[0]);
+		this.define(key, service);
 		this.define(old_key, [].concat(old_deps, old));
 		return this;
 	}
