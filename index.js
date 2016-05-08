@@ -139,7 +139,8 @@ class Lazybox extends Map {
 		const rx = pathToRx(pattern, keys);
 		const results = [];
 		this.forEach((value, key) => {
-			const m = rx.exec(key);
+			// For some weird reason on node Symbol.toString() does not get called
+			const m = rx.exec( 'symbol' === typeof key ? key.toString() : key );
 			if (m) {
 				const params = {};
 				for (let i=0; i < keys.length; i++) {

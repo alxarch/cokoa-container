@@ -178,6 +178,13 @@ describe('Lazybox', () => {
 		// TODO: [test] as()
 	});
 	describe('Lazybox#match()', () => {
+		it ('Handles symbol keys', () => {
+			let c = new Lazybox();
+			c.set(Symbol('foo'), {});
+			assert.doesNotThrow(() => {
+					c.match('foo', () => {});
+			});
+		});
 		it ('Matches params', () => {
 			let c = new Lazybox();
 			c.set('foo.bar.baz', 'foo');
