@@ -1,27 +1,58 @@
-# cokoa-container
+# Lazybox
 
-Service container based on Map()
+Dependency injection container based on Map()
 
 
 ## Usage
 
 ```js
 
-var Container = require('koa-container');
+var Lazybox = require('lazybox');
 
-var c = new Container();
+var c = new Lazybox();
 
 // Set parameter
 c.set('foo.bar', 'baz');
 
-// Set shared service
-c.set('foo', c => {
+// Define a service
+c.define('foo', () => {
 	return new Service();
 });
 
-// Set callable parameter
-c.set('foo', c.protect(foo => `Hello ${foo}`));
+// Define a service with dependencies
+c.define('answer', ['answer.value', (value) => {
+	console.log('Lazily initialized');
+	return {
+		life: () => value,
+		universe: () => value,
+		everything: () => value
+	};
+}]);
+c.set('answer.value', 42);
 
+c.get('answer').life(); // Logs 'Lazily initialized'
+
+// Define a generator service
+
+c.define('nextid', function *nextId() {
+	const id = 0;
+	while (true) {
+		yield id++;
+	}
+});
+let id = c.get('nextid')
+id(); // 0
+id(); // 1
+id(); // 2 ...
+
+
+```
+
+## Dependency Injection
+
+## Providers
+
+```js
 // Register a provider function
 c.register((c) => {
 	c.set('foo', 'bar');
@@ -34,11 +65,9 @@ c.register({
 	}
 });
 
-// Find keys matching pattern
-c.match('foo.:name')
-
-
 ```
+
+## API
 
 ### container.match(pattern, callback)
 

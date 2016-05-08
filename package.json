@@ -1,5 +1,5 @@
 {
-  "name": "cokoa-container",
+  "name": "lazybox",
   "version": "0.1.0",
   "description": "Service container based on Map()",
   "main": "index.js",
@@ -16,7 +16,7 @@
   },
   "keywords": [
     "container",
-    "cokoa",
+	"lazyload",
     "dependency",
     "injection"
   ]
