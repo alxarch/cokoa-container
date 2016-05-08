@@ -4,16 +4,20 @@
   "description": "Service container based on Map()",
   "main": "index.js",
   "scripts": {
-    "test": "node test"
+    "test": "./node_modules/mocha/bin/mocha test.js"
   },
   "author": "Sigalas Alexandros <alxarch@gmail.com>",
   "license": "ISC",
   "dependencies": {
     "path-to-regexp": "^1.2.1"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "mocha": "^2.4.5"
+  },
   "keywords": [
     "container",
-    "cokoa"
+    "cokoa",
+    "dependency",
+    "injection"
   ]
 }
