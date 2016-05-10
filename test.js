@@ -298,5 +298,62 @@ describe('Lazybox', () => {
 			assert.equal(c.get('baz'), 'foo');
 		});
 	});
+	describe('Lazybox#root()', () => {
+		it ('returns the key itself for non existing service', () => {
+			let c = new Lazybox();
+			assert.strictEqual(c.root('foo'), 'foo');
+		});
+		it ('returns the key itself for non extended service', () => {
+			let c = new Lazybox();
+			function getAnswer () {
+				return Symbol.for('42');
+			}
+			c.define('answer', getAnswer);
+			assert.strictEqual(c.root('foo'), 'foo');
+		});
+		it ('finds root key for an extended service', () => {
+			let c = new Lazybox();
+			function getAnswer () {
+				return Symbol.for('42');
+			}
+			function getAnswer2 () {
+				return Symbol.for('44');
+			}
+			c.define('answer', getAnswer);
+			c.extend('answer', getAnswer2);
+			assert.strictEqual(c.services.get((c.root('answer'))), getAnswer)
+		});
+	});
+	describe('Lazybox#rebase()', () => {
+		it('Should rebase not defined services', () => {
+			let c = new Lazybox();
+			let bar = {};
+			c.rebase('foo', [() => bar]);
+			assert.strictEqual(c.get('foo'), bar);
+		});
+		it('Should rebase loaded services', () => {
+			let c = new Lazybox();
+			let bar = {};
+			let baz = {};
+			c.set('foo', bar);
+			c.rebase('foo', [() => baz]);
+			assert.strictEqual(c.get('foo'), baz);
+		});
+		it('Should rebase services', () => {
+			let c = new Lazybox();
+			let bar = {bar: 'bar'};
+			let baz = {baz: 'baz'};
+			c.define('foo', [() => bar]);
+			c.extend('foo', [(foo) => {
+				foo.bar = 'baz';
+				return foo
+			}]);
+			c.rebase('foo', [() => baz]);
+			assert.deepEqual(c.get('foo'), {
+				bar: 'baz',
+				baz: 'baz'
+			});
+		});
+	});
 });
 

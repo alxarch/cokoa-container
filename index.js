@@ -29,8 +29,18 @@ class Lazybox extends Map {
 		this.services = new Map();
 		this.dependencies = new Map();
 		this.factories = new Set();
+		this.ancestors = new Map();
 		this.set(this, this);
 	}
+
+	// Find the root key for a service
+	root (key) {
+		while (this.ancestors.has(key) && isDefined(key)) {
+			key = this.ancestors.get(key);
+		}
+		return key;
+	}
+
 	factory (fn) {
 		return function *() {
 			while(true) {
@@ -82,6 +92,13 @@ class Lazybox extends Map {
 		// Cleanup
 		this.services.delete(key);
 		this.dependencies.delete(key);
+		while (this.ancestors.has(key)) {
+			let ancestor = this.ancestors.get(key);
+			this.ancestors.delete(key);
+			this.dependencies.delete(ancestor);
+			this.factories.delete(ancestor);
+			key = ancestor;
+		}
 		return service;
 	}
 	has (key) {
@@ -101,6 +118,13 @@ class Lazybox extends Map {
 	raw (key) {
 		return super.has(key) ? super.get(key) : this.services.get(key);
 	}
+
+	// Rebase a service
+	rebase (key, service) {
+		key = this.root(key);
+		return this.define(key, service);
+	}
+
 	// Extend a defined service
 	extend (key, service) {
 		if (this.has(key)) {
@@ -108,7 +132,11 @@ class Lazybox extends Map {
 			if (this.services.has(key)) {
 				const old = this.services.get(key);
 				const old_deps = this.dependencies.get(key);
+				const ancestor = this.ancestors.get(key);
 				this.define(old_key, old_deps.concat(old));
+				if (isDefined(ancestor)) {
+					this.ancestors.set(old_key, ancestor);
+				}
 			}
 			else {
 				let value = super.get(key);
@@ -118,6 +146,7 @@ class Lazybox extends Map {
 			// add previous service as last dependency
 			service = [old_key].concat(service[1] || [this], service[0]);
 			this.define(key, service);
+			this.ancestors.set(key, old_key);
 		}
 		else {
 			this.define(key, service);
@@ -181,9 +210,11 @@ class Lazybox extends Map {
 
 	// Purge a key (may break dependencies)
 	delete (key) {
+		if (!isDefined(key)) return false;
 		let value = super.get(key);
 		this.services.delete(key);
 		this.dependencies.delete(key);
+		this.delete(this.ancestors.get(key));
 		this.factories.delete(value);
 		return super.delete(key);
 	}
