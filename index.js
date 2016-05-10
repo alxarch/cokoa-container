@@ -95,9 +95,10 @@ class Lazybox extends Map {
 		let value = super.get(key);
 		return this.factories.has(value) ? value.next().value : value;
 	}
+
 	// The raw value of a key
 	raw (key) {
-		return super.get(key);
+		return super.has(key) ? super.get(key) : this.services.get(key);
 	}
 	// Extend a defined service
 	extend (key, service) {

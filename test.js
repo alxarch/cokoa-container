@@ -1,6 +1,7 @@
 'use strict';
 const Lazybox = require('.');
 const assert = require('assert');
+const mapget = Map.prototype.get;
 function getDependencies(c, key) {
 	return c.dependencies instanceof Map && c.dependencies.get(key);
 }
@@ -46,7 +47,7 @@ describe('Lazybox', () => {
 			}
 			c.define('answer', getAnswer);
 			// Sets an uninitialized service for the key
-			assert.strictEqual(c.raw('answer'), undefined);
+			assert.strictEqual(mapget.call(c, 'answer'), undefined);
 			assert.deepEqual(getDependencies(c, 'answer'), [c]);
 			assert.strictEqual(c.services.get('answer'), getAnswer);
 		});
@@ -56,7 +57,7 @@ describe('Lazybox', () => {
 				return value;
 			}
 			c.define('answer', ['answer.value', getAnswer]);
-			assert.strictEqual(c.raw('answer'), Lazybox.NOT_INITIALIZED);
+			assert.strictEqual(mapget.call(c, 'answer'), Lazybox.NOT_INITIALIZED);
 			assert.deepEqual(getDependencies(c, 'answer'), ['answer.value']);
 			assert.strictEqual(c.services.get('answer'), getAnswer);
 		});
@@ -241,7 +242,23 @@ describe('Lazybox', () => {
 		// TODO: [test] service()
 	});
 	describe('Lazybox#raw()', () => {
-		// TODO: [test] raw()
+		it ("Should return undefined for not set keys", () => {
+			let c = new Lazybox();
+			assert.strictEqual(c.raw('foo'), undefined);
+		});
+		it ("Should return value for set keys", () => {
+			let c = new Lazybox();
+			let bar = {};
+			c.set('foo', bar);
+			assert.strictEqual(c.raw('foo'), bar);
+		});
+		it ("Should return service for service keys", () => {
+			let c = new Lazybox();
+			let bar = {};
+			let foo = () => bar;
+			c.define('foo', foo);
+			assert.strictEqual(c.raw('foo'), foo);
+		});
 	});
 	describe('Lazybox#register()', () => {
 		// TODO: [test] register()
