@@ -103,16 +103,25 @@ class Lazybox extends Map {
 	}
 	// Extend a defined service
 	extend (key, service) {
-		const old = this.services.get(key);
-		assert(old, 'Cannot extend non service');
-		service = parseService(service);
-		assert(isFunction(service[0]), 'Invalid service definition');
-		const old_key = Symbol();
-		const old_deps = this.dependencies.get(key);
-		// add previous service as last dependency
-		service = [old_key].concat(service[1] || [this], service[0]);
-		this.define(key, service);
-		this.define(old_key, [].concat(old_deps, old));
+		if (this.has(key)) {
+			const old_key = Symbol();
+			if (this.services.has(key)) {
+				const old = this.services.get(key);
+				const old_deps = this.dependencies.get(key);
+				this.define(old_key, old_deps.concat(old));
+			}
+			else {
+				let value = super.get(key);
+				this.define(old_key, [() => value]);
+			}
+			service = parseService(service);
+			// add previous service as last dependency
+			service = [old_key].concat(service[1] || [this], service[0]);
+			this.define(key, service);
+		}
+		else {
+			this.define(key, service);
+		}
 		return this;
 	}
 

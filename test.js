@@ -116,16 +116,17 @@ describe('Lazybox', () => {
 		});
 	});
 	describe('Lazybox#extend(key)', () => {
-		it('Should fail for missing key', () => {
+		it('Should not fail for parameter key', () => {
 			let c = new Lazybox();
-			assert.throws(() => {
+			c.set('foo', 'bar');
+			assert.doesNotThrow(() => {
 				c.extend('foo', noop);
 			});
 		});
-		it('Should fail for non service key', () => {
+		it('Should not fail for non service key', () => {
 			let c = new Lazybox();
 			c.set('foo', 'bar');
-			assert.throws(() => {
+			assert.doesNotThrow(() => {
 				c.extend('foo', noop);
 			});
 		});
@@ -136,20 +137,20 @@ describe('Lazybox', () => {
 			}
 			c.define('answer', ['answer.value', getAnswer]);
 			c.extend('answer', function (value, cc) {
-				assert.strictEqual(cc, c);
+				assert.strictEqual(cc, c, 'Container as 2nd param');
 				assert.strictEqual(value, Symbol.for('42'), 'Passes last service result as last dep');
 				return Symbol.for('44');
 			});
 			c.set('answer.value', Symbol.for('42'));
 			assert.strictEqual(c.get('answer'), Symbol.for('44'), 'Returns extended result');
 		});
-		it('Should fail for initialized service', () => {
+		it('Should not fail for initialized service', () => {
 			let c = new Lazybox();
 			c.define('foo', function () {
 				return 'bar';
 			});
 			let foo = c.get('foo');
-			assert.throws(() => {
+			assert.doesNotThrow(() => {
 				c.extend('foo', noop);
 			});
 		});
