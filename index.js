@@ -89,10 +89,11 @@ class Lazybox extends Map {
 	}
 	// Get a service or parameter
 	get (key) {
-		if (this.services.has(key)) {
-			super.set(key, this.service(key));
-		}
-		let value = super.get(key);
+		let value = super.has(key) ?
+			super.get(key) :
+			this.services.has(key) ?
+			super.set(key, this.service(key)).get(key) :
+			void 0;
 		return this.factories.has(value) ? value.next().value : value;
 	}
 
