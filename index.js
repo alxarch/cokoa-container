@@ -164,6 +164,7 @@ class Lazybox extends Map {
 			return this.get(key);
 		}
 		else {
+			assert(!this.services.has(key), 'Cannot use setdefault on a service');
 			this.set(key, value);
 			return this.get(key);
 		}
