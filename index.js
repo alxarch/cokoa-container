@@ -73,7 +73,7 @@ class Lazybox extends Map {
 	// Instanciate a service
 	service (key) {
 		const fn = this.services.get(key);
-		if (!fn) return null;
+		assert(isFunction(fn), 'Invalid service key');
 		const deps = this.resolve(key);
 		const service = fn.apply(null, deps);
 		if (isGeneratorObject(service)) {
