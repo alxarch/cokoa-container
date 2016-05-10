@@ -44,13 +44,13 @@ class Lazybox extends Map {
 		return super.set(key, value);
 	}
 	// Define a service
-	define (key, value) {
+	define (key, service) {
 		// cleanup any previous definitions
 		this.delete(key);
-		value = parseService(value);
-		assert(isFunction(value[0]), 'Invalid service definition');
-		this.services.set(key, value[0]);
-		this.dependencies.set(key, value[1] || [this]);
+		service = parseService(service);
+		assert(isFunction(service[0]), 'Invalid service definition');
+		this.services.set(key, service[0]);
+		this.dependencies.set(key, service[1] || [this]);
 		return this;
 	}
 	// Resolve dependencies
