@@ -355,5 +355,23 @@ describe('Lazybox', () => {
 			});
 		});
 	});
+	describe('Lazybox#size', () => {
+		it ('Should report size 1 on start', () => {
+			let c = new Lazybox();
+			assert.equal(c.size, 1, 'Has size 1 on initialization');
+		});
+		it ('Should report size of extended services', () => {
+			let c = new Lazybox();
+			let bar = {bar: 'bar'};
+			let baz = {baz: 'baz'};
+			c.define('foo', [() => bar]);
+			assert.equal(c.size, 2);
+			c.extend('foo', [(foo) => {
+				foo.bar = 'baz';
+				return foo
+			}]);
+			assert.equal(c.size, 3);
+		});
+	});
 });
 

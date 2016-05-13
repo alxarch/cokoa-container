@@ -219,6 +219,10 @@ class Lazybox extends Map {
 		return super.delete(key);
 	}
 
+	get size () {
+		return super.size + this.services.size;
+	}
+
 }
 
 Object.assign(Lazybox, {isPlainFunction, isFunction, isGenerator, parseService, isGeneratorObject});
