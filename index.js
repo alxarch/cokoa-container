@@ -218,6 +218,16 @@ class Lazybox extends Map {
 		this.factories.delete(value);
 		return super.delete(key);
 	}
+	
+	clear () {
+		this.factories.clear();
+		this.services.clear();
+		this.dependencies.clear();
+		this.ancestors.clear();
+		const result = super.clear();
+		this.set(this, this);
+		return result;
+	}
 
 	get size () {
 		return super.size + this.services.size;
