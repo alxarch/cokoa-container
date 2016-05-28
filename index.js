@@ -143,7 +143,7 @@ class Lazybox extends Map {
 				this.define(old_key, [() => value]);
 			}
 			service = parseService(service);
-			// add previous service as last dependency
+			// add previous service as first dependency
 			service = [old_key].concat(service[1] || [this], service[0]);
 			this.define(key, service);
 			this.ancestors.set(key, old_key);
