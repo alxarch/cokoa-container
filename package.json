@@ -8,9 +8,7 @@
   },
   "author": "Sigalas Alexandros <alxarch@gmail.com>",
   "license": "ISC",
-  "dependencies": {
-    "path-to-regexp": "^1.2.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "mocha": "^2.4.5"
   },

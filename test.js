@@ -195,57 +195,6 @@ describe('Lazybox', () => {
 	describe('Lazybox#has()', () => {
 		// TODO: [test] as()
 	});
-	describe('Lazybox#match()', () => {
-		it ('Handles symbol keys', () => {
-			let c = new Lazybox();
-			c.set(Symbol('foo'), {});
-			assert.doesNotThrow(() => {
-					c.match('foo', () => {});
-			});
-		});
-		it ('Matches params', () => {
-			let c = new Lazybox();
-			c.set('foo.bar.baz', 'foo');
-			c.set('foo.bar', 'bar');
-			c.set('baz.bar', 'foo');
-			const actual = [];
-			c.match('foo.:bar.:baz?', (key, params) => actual.push({key, params}) );
-			assert.deepEqual(actual, [
-				{
-					key: 'foo.bar.baz',
-					params: {
-						bar: 'bar',
-						baz: 'baz'
-					}
-				},
-				{
-					key: 'foo.bar',
-					params: {
-						bar: 'bar',
-						baz: undefined
-					}
-				}
-				
-			]);
-		});
-		it ('Does not instanciate services', () => {
-			let c = new Lazybox();
-			let started = false;
-			let service = {};
-			c.set('foo', () => {
-				started = true;
-				return  service;
-			});
-			let matched = 0;
-			c.match('foo', (key, params) => {
-				matched++;
-				assert.equal(started, false, 'Does not initialize service');
-				assert.equal(key, 'foo');
-				assert.deepEqual(params, {});
-			});
-			assert.equal(matched, 1);
-		});
-	});
 	describe('Lazybox#factory()', () => {
 		// TODO: [test] factory()
 	});

@@ -1,7 +1,5 @@
 'use strict';
 
-const pathToRx = require('path-to-regexp');
-
 function isDefined (obj) {
 	return typeof obj !== 'undefined';
 }
@@ -170,29 +168,6 @@ class Lazybox extends Map {
 		}
 
 		return this;
-	}
-
-	// Iterate over keys matching a key pattern
-	match (pattern, fn) {
-		const keys = [];
-		const rx = pathToRx(pattern, keys);
-		const results = [];
-		this.forEach((value, key) => {
-			try {
-				key = `${key}`;
-			}
-			catch (err) {
-				return;
-			}
-			const m = key.match(rx);
-			if (m) {
-				const params = {};
-				for (let i=0; i < keys.length; i++) {
-					params[keys[i].name] = m[i + 1];
-				}
-				fn(key, params, this);
-			}
-		});
 	}
 
 	// Python-like setdefault
