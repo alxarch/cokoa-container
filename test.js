@@ -144,6 +144,22 @@ describe('Lazybox', () => {
 			c.set('answer.value', Symbol.for('42'));
 			assert.strictEqual(c.get('answer'), Symbol.for('44'), 'Returns extended result');
 		});
+		it('Should extend a service multiple times', () => {
+			let c = new Lazybox();
+			function getAnswer (value) {
+				return value;
+			}
+			c.define('answer', ['answer.value', getAnswer]);
+			for (let i=0; i < 10; i++) {
+				c.extend('answer', function (value, cc) {
+					assert.strictEqual(cc, c, 'Container as 2nd param');
+					assert.strictEqual(value, Symbol.for(`${42 + i}`), 'Passes last service result as first dep');
+					return Symbol.for(`${42 + i + 1}`);
+				});
+			}
+			c.set('answer.value', Symbol.for('42'));
+			assert.strictEqual(c.get('answer'), Symbol.for('52'), 'Returns extended result');
+		});
 		it('Should not fail for initialized service', () => {
 			let c = new Lazybox();
 			c.define('foo', function () {
