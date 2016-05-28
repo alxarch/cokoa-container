@@ -209,12 +209,14 @@ class Lazybox extends Map {
 	}
 
 	// Purge a key (may break dependencies)
-	delete (key) {
+	delete (key, deep) {
 		if (!isDefined(key)) return false;
 		let value = super.get(key);
 		this.services.delete(key);
 		this.dependencies.delete(key);
-		this.delete(this.ancestors.get(key));
+		if (deep) {
+			this.delete(this.ancestors.get(key));
+		}
 		this.factories.delete(value);
 		return super.delete(key);
 	}
