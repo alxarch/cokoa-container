@@ -128,7 +128,7 @@ class Lazybox extends Map {
 	// Extend a defined service
 	extend (key, service) {
 		if (this.has(key)) {
-			const old_key = Symbol();
+			const old_key = {key};
 			if (this.services.has(key)) {
 				const old = this.services.get(key);
 				const old_deps = this.dependencies.get(key);
