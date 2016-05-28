@@ -138,7 +138,7 @@ describe('Lazybox', () => {
 			c.define('answer', ['answer.value', getAnswer]);
 			c.extend('answer', function (value, cc) {
 				assert.strictEqual(cc, c, 'Container as 2nd param');
-				assert.strictEqual(value, Symbol.for('42'), 'Passes last service result as last dep');
+				assert.strictEqual(value, Symbol.for('42'), 'Passes last service result as first dep');
 				return Symbol.for('44');
 			});
 			c.set('answer.value', Symbol.for('42'));
