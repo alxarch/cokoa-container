@@ -92,13 +92,7 @@ class Lazybox extends Map {
 		// Cleanup
 		this.services.delete(key);
 		this.dependencies.delete(key);
-		while (this.ancestors.has(key)) {
-			let ancestor = this.ancestors.get(key);
-			this.ancestors.delete(key);
-			this.dependencies.delete(ancestor);
-			this.factories.delete(ancestor);
-			key = ancestor;
-		}
+		this.ancestors.delete(key);
 		return service;
 	}
 	has (key) {
