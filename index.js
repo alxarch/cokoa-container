@@ -1,6 +1,5 @@
 'use strict';
 
-const assert = require('assert');
 const pathToRx = require('path-to-regexp');
 
 function isDefined (obj) {
@@ -58,7 +57,9 @@ class Lazybox extends Map {
 		// cleanup any previous definitions
 		this.delete(key);
 		service = parseService(service);
-		assert(isFunction(service[0]), 'Invalid service definition');
+		if (!isFunction(service[0])) {
+			throw new TypeError(`Invalid service definition '${key.toString()}'`);
+		}
 		this.services.set(key, service[0]);
 		this.dependencies.set(key, service[1] || [this]);
 		return this;
@@ -77,13 +78,17 @@ class Lazybox extends Map {
 	// Require a key
 	require (key) {
 		let result = this.get(key);
-		assert(isDefined(result), `Missing dependency '${key.toString()}'`);
+		if (!isDefined(result)) {
+			throw new Error(`Missing dependency '${key.toString()}'`);
+		}
 		return result;
 	}
 	// Instanciate a service
 	service (key) {
 		const fn = this.services.get(key);
-		assert(isFunction(fn), 'Invalid service key');
+		if (!isFunction(fn)) {
+			throw new TypeError(`Invalid service key '${key.toString()}'`);
+		}
 		const deps = this.resolve(key);
 		const service = fn.apply(null, deps);
 		if (isGeneratorObject(service)) {
@@ -92,13 +97,7 @@ class Lazybox extends Map {
 		// Cleanup
 		this.services.delete(key);
 		this.dependencies.delete(key);
-		while (this.ancestors.has(key)) {
-			let ancestor = this.ancestors.get(key);
-			this.ancestors.delete(key);
-			this.dependencies.delete(ancestor);
-			this.factories.delete(ancestor);
-			key = ancestor;
-		}
+		this.ancestors.delete(key);
 		return service;
 	}
 	has (key) {
@@ -163,7 +162,7 @@ class Lazybox extends Map {
 			provider.register(this);
 		}
 		else {
-			throw new Error('Invalid provider');
+			throw new TypeError(`Invalid provider`);
 		}
 
 		for (let key in config) {
@@ -202,7 +201,9 @@ class Lazybox extends Map {
 			return this.get(key);
 		}
 		else {
-			assert(!this.services.has(key), 'Cannot use setdefault on a service');
+			if (this.services.has(key)) {
+				throw new Error('Cannot use setdefault on a service');
+			}
 			this.set(key, value);
 			return this.get(key);
 		}
