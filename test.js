@@ -1,27 +1,69 @@
 'use strict';
 const Lazybox = require('.');
+const ServiceDefinition = Lazybox.ServiceDefinition;
 const assert = require('assert');
 const mapget = Map.prototype.get;
-function getDependencies(c, key) {
-	return c.dependencies instanceof Map && c.dependencies.get(key);
-}
 function noop () {};
 
-describe('Lazybox', () => {
-	describe('Lazybox.parseService()', () => {
+describe('ServiceDefinition', () => {
+	describe('ServiceDefinition.parse()', () => {
 		it ('Should parse single function', () => {
 			let fn = function () {};
-			assert.deepEqual(Lazybox.parseService(fn), [fn, null]);
+			let s = ServiceDefinition.parse(fn);
+			assert.strictEqual(fn, s.callback);
+			assert.strictEqual(undefined, s.dependencies);
+			assert.strictEqual(undefined, s.ancestor);
 		});
 		it ('Should parse an array function definition without deps', () => {
 			let fn = function () {};
-			assert.deepEqual(Lazybox.parseService([fn]), [fn, []]);
+			let s = ServiceDefinition.parse([fn]);
+			assert.strictEqual(fn, s.callback);
+			assert.deepEqual([], s.dependencies);
+			assert.strictEqual(undefined, s.ancestor);
 		});
 		it ('Should parse an array function definition with deps', () => {
 			let fn = function () {};
-			assert.deepEqual(Lazybox.parseService(['foo', fn]), [fn, ['foo']]);
+			let s = ServiceDefinition.parse(['foo', fn]);
+			assert.strictEqual(fn, s.callback);
+			assert.deepEqual(['foo'], s.dependencies);
+			assert.strictEqual(undefined, s.ancestor);
+		});
+		it ('Should pass through services', () => {
+			let s = new ServiceDefinition(noop);
+			let ss = ServiceDefinition.parse(s);
+			assert.strictEqual(ss, s);
 		});
 	});
+	describe('ServiceDefinition#root()', () => {
+		it ('returns the key itself for non existing service', () => {
+			let s = new ServiceDefinition(noop);
+			assert.strictEqual(s.root, s);
+		});
+		it ('returns the key itself for non extended service', () => {
+			function getAnswer () {
+				return Symbol.for('42');
+			}
+			let s = new ServiceDefinition(getAnswer);
+			console.log(s.toString());
+			assert.strictEqual(s.root, s);
+		});
+		it ('finds root key for an extended service', () => {
+			let c = new Lazybox();
+			function getAnswer () {
+				return Symbol.for('42');
+			}
+			function getAnswer2 () {
+				return Symbol.for('44');
+			}
+			c.define('answer', getAnswer);
+			c.extend('answer', getAnswer2);
+			const s = mapget.call(c, 'answer');
+			assert.strictEqual(s.callback, getAnswer2, 'correct last service');
+			assert.strictEqual(s.root.callback, getAnswer, 'correct root service');
+		});
+	});
+});
+describe('Lazybox', () => {
 	describe('Lazybox.isFunction()', () => {
 		// TODO: [test] isFunction
 	});
@@ -47,9 +89,9 @@ describe('Lazybox', () => {
 			}
 			c.define('answer', getAnswer);
 			// Sets an uninitialized service for the key
-			assert.strictEqual(mapget.call(c, 'answer'), undefined);
-			assert.deepEqual(getDependencies(c, 'answer'), [c]);
-			assert.strictEqual(c.services.get('answer'), getAnswer);
+			const s = mapget.call(c, 'answer');
+			assert.equal(s.dependencies, null);
+			assert.ok(s instanceof ServiceDefinition);
 		});
 		it('Should define a service with dependencies', () => {
 			let c = new Lazybox();
@@ -57,9 +99,9 @@ describe('Lazybox', () => {
 				return value;
 			}
 			c.define('answer', ['answer.value', getAnswer]);
-			assert.strictEqual(mapget.call(c, 'answer'), Lazybox.NOT_INITIALIZED);
-			assert.deepEqual(getDependencies(c, 'answer'), ['answer.value']);
-			assert.strictEqual(c.services.get('answer'), getAnswer);
+			let s = mapget.call(c, 'answer');
+			assert.deepEqual(s.dependencies, ['answer.value']);
+			assert.ok(s instanceof ServiceDefinition);
 		});
 	});
 	describe('Lazybox#get(key)', () => {
@@ -111,8 +153,6 @@ describe('Lazybox', () => {
 			c.define('answer', ['answer.value', getAnswer]);
 			c.set('answer.value', obj);
 			assert.strictEqual(c.get('answer'), obj);
-			assert.strictEqual(getDependencies(c, 'answer'), undefined);
-			assert.strictEqual(c.services.get('answer'), undefined);
 		});
 	});
 	describe('Lazybox#extend(key)', () => {
@@ -192,9 +232,6 @@ describe('Lazybox', () => {
 	describe('Lazybox#delete()', () => {
 		// TODO: [test] delete()
 	});
-	describe('Lazybox#has()', () => {
-		// TODO: [test] as()
-	});
 	describe('Lazybox#factory()', () => {
 		// TODO: [test] factory()
 	});
@@ -223,7 +260,8 @@ describe('Lazybox', () => {
 			let bar = {};
 			let foo = () => bar;
 			c.define('foo', foo);
-			assert.strictEqual(c.raw('foo'), foo);
+			const s = c.raw('foo');
+			assert.ok(s instanceof ServiceDefinition);
 		});
 	});
 	describe('Lazybox#register()', () => {
@@ -261,32 +299,6 @@ describe('Lazybox', () => {
 				c.set('baz', 'bar');
 			}, { baz: 'foo' });
 			assert.equal(c.get('baz'), 'foo');
-		});
-	});
-	describe('Lazybox#root()', () => {
-		it ('returns the key itself for non existing service', () => {
-			let c = new Lazybox();
-			assert.strictEqual(c.root('foo'), 'foo');
-		});
-		it ('returns the key itself for non extended service', () => {
-			let c = new Lazybox();
-			function getAnswer () {
-				return Symbol.for('42');
-			}
-			c.define('answer', getAnswer);
-			assert.strictEqual(c.root('foo'), 'foo');
-		});
-		it ('finds root key for an extended service', () => {
-			let c = new Lazybox();
-			function getAnswer () {
-				return Symbol.for('42');
-			}
-			function getAnswer2 () {
-				return Symbol.for('44');
-			}
-			c.define('answer', getAnswer);
-			c.extend('answer', getAnswer2);
-			assert.strictEqual(c.services.get((c.root('answer'))), getAnswer)
 		});
 	});
 	describe('Lazybox#rebase()', () => {

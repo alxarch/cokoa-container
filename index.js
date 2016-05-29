@@ -3,8 +3,9 @@
 function isDefined (obj) {
 	return typeof obj !== 'undefined';
 }
+const toString = Object.prototype.toString;
 function isGeneratorObject (obj) {
-	return Object.prototype.toString.call(obj) === '[object Generator]';
+	return toString.call(obj) === '[object Generator]';
 }
 
 function isFunction (fn) {
@@ -16,28 +17,61 @@ function isGenerator (fn) {
 function isPlainFunction (fn) {
 	return 'function' === typeof fn && fn.constructor.name == 'Function';
 }
-function parseService (service) {
-	return Array.isArray(service) ? [service.pop(), service] : [service, null];
+
+class ServiceDefinition {
+	static parse (service) {
+		if (!(service instanceof ServiceDefinition)) {
+			if (Array.isArray(service)) {
+				service = new ServiceDefinition(service.pop(), service);
+			}
+			else {
+				service = new ServiceDefinition(service);
+			}
+		}
+		return service;
+	}
+
+	constructor (callback, dependencies, ancestor) {
+		if (!isFunction(callback)) {
+			throw new TypeError(`Invalid service definition`);
+		}
+		this.dependencies = dependencies;
+		this.callback = callback;
+		this.ancestor = ancestor;
+	}
+
+	get root () {
+		let root = this;
+		while (root.ancestor instanceof ServiceDefinition) {
+			root = root.ancestor;
+		}
+
+		return root;
+	}
+
+	initialize (lazybox) {
+		const dependencies = Array.isArray(this.dependencies) ? this.dependencies : [lazybox];
+
+		// Resolve dependencies
+		const args = [];
+		for (let d of dependencies) {
+			let arg = lazybox.get(d);
+			if (!isDefined(arg)) {
+				throw new Error(`Missing dependency '${d.toString()}'`);
+			}
+			args.push(arg);
+		}
+		return this.callback.apply(null, args);
+	}
 }
 
 class Lazybox extends Map {
 	constructor () {
 		super();
-		this.services = new Map();
-		this.dependencies = new Map();
-		this.factories = new Set();
-		this.ancestors = new Map();
 		this.set(this, this);
 	}
 
-	// Find the root key for a service
-	root (key) {
-		while (this.ancestors.has(key) && isDefined(key)) {
-			key = this.ancestors.get(key);
-		}
-		return key;
-	}
-
+	// Wrap a plain function in a generator loop
 	factory (fn) {
 		return function *() {
 			while(true) {
@@ -45,105 +79,63 @@ class Lazybox extends Map {
 			}
 		}
 	}
-	set (key, value) {
-		// cleanup any previous definitions
-		this.delete(key);
-		return super.set(key, value);
-	}
+
 	// Define a service
 	define (key, service) {
-		// cleanup any previous definitions
-		this.delete(key);
-		service = parseService(service);
-		if (!isFunction(service[0])) {
-			throw new TypeError(`Invalid service definition '${key.toString()}'`);
+		try {
+			service = ServiceDefinition.parse(service);
 		}
-		this.services.set(key, service[0]);
-		this.dependencies.set(key, service[1] || [this]);
-		return this;
-	}
-	// Resolve dependencies
-	resolve (key) {
-		const result = [];
-		if (this.dependencies.has(key)) {
-			let deps = this.dependencies.get(key);
-			for (let d of deps) {
-				result.push(this.require(d));
-			}
+		catch (err) {
+			err.key = key;
+			throw err;
 		}
-		return result;
+		return this.set(key, service);
 	}
-	// Require a key
-	require (key) {
-		let result = this.get(key);
-		if (!isDefined(result)) {
-			throw new Error(`Missing dependency '${key.toString()}'`);
-		}
-		return result;
-	}
-	// Instanciate a service
-	service (key) {
-		const fn = this.services.get(key);
-		if (!isFunction(fn)) {
-			throw new TypeError(`Invalid service key '${key.toString()}'`);
-		}
-		const deps = this.resolve(key);
-		const service = fn.apply(null, deps);
-		if (isGeneratorObject(service)) {
-			this.factories.add(service);
-		}
-		// Cleanup
-		this.services.delete(key);
-		this.dependencies.delete(key);
-		this.ancestors.delete(key);
-		return service;
-	}
-	has (key) {
-		return super.has(key) || this.services.has(key);
-	}
+
 	// Get a service or parameter
 	get (key) {
-		let value = super.has(key) ?
-			super.get(key) :
-			this.services.has(key) ?
-			super.set(key, this.service(key)).get(key) :
-			void 0;
-		return this.factories.has(value) ? value.next().value : value;
+		let value = super.get(key);
+		if (value instanceof ServiceDefinition) {
+			value = value.initialize(this);
+			super.set(key, value);
+		}
+		return isGeneratorObject(value) ? value.next().value : value;
 	}
 
 	// The raw value of a key
 	raw (key) {
-		return super.has(key) ? super.get(key) : this.services.get(key);
+		return super.get(key);
 	}
 
 	// Rebase a service
 	rebase (key, service) {
-		key = this.root(key);
-		return this.define(key, service);
+		service = ServiceDefinition.parse(service);
+		const old = super.get(key);
+		if (old instanceof ServiceDefinition) {
+			const root = old.root;
+			root.callback = service.callback;
+			root.dependencies = service.dependencies;
+		}
+		else {
+			this.define(key, service);
+		}
+		return this;
 	}
 
 	// Extend a defined service
 	extend (key, service) {
-		if (this.has(key)) {
+		let old = super.get(key);
+		if (isDefined(old)) {
 			const old_key = {key};
-			if (this.services.has(key)) {
-				const old = this.services.get(key);
-				const old_deps = this.dependencies.get(key);
-				const ancestor = this.ancestors.get(key);
-				this.define(old_key, old_deps.concat(old));
-				if (isDefined(ancestor)) {
-					this.ancestors.set(old_key, ancestor);
-				}
+			service = ServiceDefinition.parse(service);
+			if (!(old instanceof ServiceDefinition)) {
+				old = ServiceDefinition.parse([() => old]);
 			}
-			else {
-				let value = super.get(key);
-				this.define(old_key, [() => value]);
-			}
-			service = parseService(service);
+			this.define(old_key, old);
+			service.ancestor = old;
 			// add previous service as first dependency
-			service = [old_key].concat(service[1] || [this], service[0]);
+			service.dependencies = [old_key].concat(service.dependencies || [this]);
 			this.define(key, service);
-			this.ancestors.set(key, old_key);
 		}
 		else {
 			this.define(key, service);
@@ -172,47 +164,20 @@ class Lazybox extends Map {
 
 	// Python-like setdefault
 	setdefault (key, value) {
-		if (this.has(key)) {
-			return this.get(key);
-		}
-		else {
-			if (this.services.has(key)) {
-				throw new Error('Cannot use setdefault on a service');
-			}
-			this.set(key, value);
-			return this.get(key);
-		}
+		return this.has(key) ?  this.get(key) : this.set(key, value).get(key);
 	}
 
-	// Purge a key (may break dependencies)
-	delete (key, deep) {
-		if (!isDefined(key)) return false;
-		let value = super.get(key);
-		this.services.delete(key);
-		this.dependencies.delete(key);
-		if (deep) {
-			this.delete(this.ancestors.get(key));
-		}
-		this.factories.delete(value);
-		return super.delete(key);
-	}
-	
+	// Clear without affecting `this` dependency key
 	clear () {
-		this.factories.clear();
-		this.services.clear();
-		this.dependencies.clear();
-		this.ancestors.clear();
+		const value = super.get(this);
 		const result = super.clear();
-		this.set(this, this);
+		this.set(this, value);
 		return result;
-	}
-
-	get size () {
-		return super.size + this.services.size;
 	}
 
 }
 
-Object.assign(Lazybox, {isPlainFunction, isFunction, isGenerator, parseService, isGeneratorObject});
+
+Object.assign(Lazybox, {isPlainFunction, isFunction, isGenerator, ServiceDefinition, isGeneratorObject});
 
 module.exports = Lazybox;
